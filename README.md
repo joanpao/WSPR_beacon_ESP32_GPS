@@ -8,6 +8,11 @@ and through the serial output if it is connected to a computer.
 
 The program allows the implementation of the international WSPR beacon project standard (https://github.com/HB9VQQ/WSPRBeacon)
 
+These programs are not necessary for the operation of WSPR beacon, only to use the OLED screen if you have it and want it:
+- Adafruit_SSD1306.cpp
+- Adafruit_SSD1306.h
+- Fixed8x16.h
+
 It's highly recommended to have:
 - An RF receiver (e.g., SDR) to verify that the WSPR TX is transmitting and on what frequency
 - A WSPR receiver to monitor WSPR or SPOTS transmissions
