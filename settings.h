@@ -8,57 +8,67 @@
 #define DEVMODE
 
 // Your own HAM call. Change it
-// Modifico por mi indicativo
-#define MYCALL "EA5JTT"
+// Ponga aquí su indicativo de radioaficionado
+#define MYCALL "XXXXXX"
 
 // The power of your transmission in dBm. 
 // for the si5351 this should be set to 10 (=10 milliwatts).
-// Es la potencia que entrega Si5351
-#define DBMPOWER 8
+// Potencia teórica que entrega Si5351 en dBm
+#define DBMPOWER 10
 
 
 // If you have a valid GPS lock, the software will make this HIGH twice for 20ms
 // You could connect a LED to it.
 // Set LED_PIN to 0 if you do not want to use a pin
-// Pongo el 25 que es el que normalmente usamos 
+
 #define LED_PIN 25       
 
 // Frequency of the SI5351 Oscillator in Hertz
 // for example #define SI5351FREQ 26000000 if you have a 26MHz XO
 // Use 0 if you have a 25MHz Oscillator
-// segun los datos de Aliexpress funciona a 25 MHz asíe s que pongo 0
+// My SI5351 xomprado en Aliexpress funciona a 25 MHz así es que pongo 0
+
 #define SI5351FREQ 0
 
 
 /***********************************************************************************
+* All Si5351 chips require frequency calibration, and to do so, the adjustment value must be calculated:
+* - using the sample calibration program
+* - using a frequency meter
+* - using a receiver
+*
+* If calibrated with hundredths of a Hz, set to 0 because it is preferred to perform the adjustment on each band in the array.
+*
 * Todos los chips  Si5351 preceisan calibrar la frecuencia y para ello hay que calcular el valor de ajuste:
-* - mediante el progrma de calibraciónd e ejemplo
+* - mediante el progrma de calibración de ejemplo
 * - mediante un frecuencimetro
 * - mediante un receptor 
 *
-* Se calibre con centesimas de Hz
-* por algun motivo el ajuste de 2660 Hz para 18MHZ se convierte en 1160 ¿?
+* Se calibre con centesimas de Hz, se pone 0 pues se prefiere hacer el ajuste en cada banda en el array
+*
 ************************************************************************************/
 // #define SI5351_CORRECTION 116000
+
 #define SI5351_CORRECTION 0
 
-/*
-WSPR	    f SDR	    Ajuste (Hz)	S SDR (dB)
-3570100	  3570600	  50000	  -50
-5288700	  5289450	  75000	  -50
-7040100	  7041130	  103000	-40
-10140200	10141680	148000	-45
-13555400	13557380	198000	-40
-14097100	14099160	206000	-40
-18106100	18108760	266000	-34  CORRECCION REAL (CENTESIAMS HZ) +116000	CORRECCION REAL EN FRECUENCIA -2160 (HZ) => 18103940 HZ
-21096100	21099170	307000	-35
-24926100	24929730	363000	-40
-28126100	28130205	415000	-60
-*/
 /***********************************************************************************
 * WSPR 
+/* Actual center frequencies of the 200 Hz band assigned to WSPR
+/* Frecuencias de centro real de las bandas (BW=200 Hz) asignada a WSPR en HF 
+WSPR	 
+160m 1838100
+80m 3570100	 
+60m 5288700	
+40m 7040100	
+30m 10140200	
+20m 14097100	
+18m 18106100	
+15m 21096100	
+12m 24926100	
+10m 28126100	
+*/
 ************************************************************************************/
-/* INTERBATIONAL WSPR BEACON PROJECT https://github.com/HB9VQQ/WSPRBeacon
+/* INTERNATIONAL WSPR BEACON PROJECT schedul https://github.com/HB9VQQ/WSPRBeacon
      1838100ULL,   // 160m 0,20,40
      3570100ULL,   // 80m 2,22,42
      5288700ULL,   // 60m 4,24,44
@@ -72,11 +82,12 @@ WSPR	    f SDR	    Ajuste (Hz)	S SDR (dB)
 */
 // Frecuencia en  Hz con - correcccion si #define SI5351_CORRECTION 0
 // 0ULL,        // minute   => no transmission 
+// puede aprovechan los slots vacios para repetir bandas      
 static const unsigned long long freqArray[10] = {
-  7039280ULL,  // RPT 0,20,40
-  14095400ULL,  // RPT 2,22,42
-  21093600ULL,  // RPT 4,24,44
-  7039280ULL,  //  ok 40m 6,26,46
+  0ULL,   // RPT 0,20,40
+  0ULL,  // RPT 2,22,42
+  0ULL,  // RPT 4,24,44
+  7039280ULL,   //  ok 40m 6,26,46
   10139000ULL,  //  ok 30m 8,28,48
   14095400ULL,  //  ok 20m 10,30,50
   18103940ULL,  //  ok 18m 12,32,52 
@@ -84,7 +95,6 @@ static const unsigned long long freqArray[10] = {
   24923180ULL,  //  ok 12m 16,36,56 
   28122750ULL,  //  ok 10m 18,38,58 
 };
-
 
 /***********************************************************************************
 * GPS SETTINGS
