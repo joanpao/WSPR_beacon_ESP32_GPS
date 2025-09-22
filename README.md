@@ -1,4 +1,4 @@
-# WSPR_beacon_ESP32
+# WSPR_beacon_ESP32 (GPS)
 
 It allows you to create a low-cost multiband WSPR TX (beacon) with an SI5351 board (8 kHz to 160 MHz with an output power of 8 dBm - 6 mW) and 
 an ESP32 with GPS like the Lilygo ESP32 LoRa GPS 433MHz (Lilygo T-Beam).
