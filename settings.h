@@ -1,44 +1,24 @@
 /***********************************************************************************
-* Use serial console Output for debugging and development
-*  
-* Change if needed
+* Se usa salida serie para debug
+* se puede comentar si no se usa
 ************************************************************************************/
-// Comment out if you do not want Serial console output
-// Comment out DEVMODE in a production environment as it will degrade performance!
+// Comente esta linea en un entorno de producción
 #define DEVMODE
 
-// Your own HAM call. Change it
 // Ponga aquí su indicativo de radioaficionado
 #define MYCALL "XXXXXX"
 
-// The power of your transmission in dBm. 
-// for the si5351 this should be set to 10 (=10 milliwatts).
 // Potencia teórica que entrega Si5351 en dBm
 #define DBMPOWER 10
 
-
-// If you have a valid GPS lock, the software will make this HIGH twice for 20ms
-// You could connect a LED to it.
-// Set LED_PIN to 0 if you do not want to use a pin
-
+// LED_PIN  0  se no quiere usar el LED para el GPS (es util)
 #define LED_PIN 25       
 
-// Frequency of the SI5351 Oscillator in Hertz
-// for example #define SI5351FREQ 26000000 if you have a 26MHz XO
-// Use 0 if you have a 25MHz Oscillator
-// My SI5351 xomprado en Aliexpress funciona a 25 MHz así es que pongo 0
-
+// My SI5351 Comprado en Aliexpress funciona a 25 MHz así es que pongo 0
 #define SI5351FREQ 0
 
 
 /***********************************************************************************
-* All Si5351 chips require frequency calibration, and to do so, the adjustment value must be calculated:
-* - using the sample calibration program
-* - using a frequency meter
-* - using a receiver
-*
-* If calibrated with hundredths of a Hz, set to 0 because it is preferred to perform the adjustment on each band in the array.
-*
 * Todos los chips  Si5351 preceisan calibrar la frecuencia y para ello hay que calcular el valor de ajuste:
 * - mediante el progrma de calibración de ejemplo
 * - mediante un frecuencimetro
@@ -52,9 +32,7 @@
 #define SI5351_CORRECTION 0
 
 /***********************************************************************************
-* WSPR 
-/* Actual center frequencies of the 200 Hz band assigned to WSPR
-/* Frecuencias de centro real de las bandas (BW=200 Hz) asignada a WSPR en HF 
+Frecuencias de centro real de las bandas (BW=200 Hz) asignada a WSPR en HF 
 WSPR	 
 160m 1838100
 80m 3570100	 
@@ -67,7 +45,6 @@ WSPR
 12m 24926100	
 10m 28126100	
 */
-************************************************************************************/
 /* INTERNATIONAL WSPR BEACON PROJECT schedul https://github.com/HB9VQQ/WSPRBeacon
      1838100ULL,   // 160m 0,20,40
      3570100ULL,   // 80m 2,22,42
@@ -95,6 +72,9 @@ static const unsigned long long freqArray[10] = {
   24923180ULL,  //  ok 12m 16,36,56 
   28122750ULL,  //  ok 10m 18,38,58 
 };
+
+// Calcula automáticamente el tamaño del array
+  const uint8_t NUM_FREQS = sizeof(freqArray) / sizeof(freqArray[0]);
 
 /***********************************************************************************
 * GPS SETTINGS
