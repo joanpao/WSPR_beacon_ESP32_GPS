@@ -2,15 +2,22 @@
 Programa original de WSPR Beacon by Roel Kroes
 para  microcontrolador AVR (como el ATmega328P),disponible en
 https://github.com/RoelKroes/wsprbeacon/blob/main/WSPR_beacon_arduino.ino
-Modificado por EA5JTT Juanpa 20250902
+Modificado por EA5JTT Juanpa 
+V1 20250902
 - Adaptacion a Lilygo ESP32 LoRa GPS 433MHz (T-Beam), compilar en Arduino IDE para placa lilyGo T-Display
-- Inclusion de reset para GPS
-- Ampliar la tabla de slots de frecuencias de 6 a 10 para adaptarla al International WSPR Beacon Project 
+- Inclusion de reset para GPS por los cuelgues
 - Inclusion de mensajes en pantalla OLED para poder controlarla sin PC 
-- Inclusion de de la correccion en la tabla de frecuencias
+- Inclusion de de la correccion el Si5351 especifico en la tabla de frecuencias y no uno generico para todas
+V1 202510025
+- Redondeo de longitud y latitud para evitar Locator erratico
+_ incluir el LOCATOR por defecto para evitar Locator erratico
+- Flexibilizar el tamaño de la tabla de frecuencias, puede ser cualquier numero de elementos
+
+
 El Si5351 saca unos 8 dBm y genera una señal de calidad para las bandas de HF de 40, 30, 20, 18, 15, 12 y 10m
 no se ha probado para VHF
 Se quiere probar con un amplificador de potencia y filtro pasabajos
+
 */
 
 #include <si5351.h>
@@ -51,6 +58,8 @@ volatile bool proceed = false;
 
 hw_timer_t* timer = nullptr;
 
+uint8_t currentFreqIndex = 0;  // Índice de frecuencia actual
+
 // Datos GPS
 // Luz parpadeante roja junto al chip del GPS
 // Si no funciona el GPS no funciona el dispositivo
@@ -75,13 +84,21 @@ struct TGPS {
 TGPS UGPS;
 
 // Maidenhead como global también (si se accede desde múltiples funciones)
-char MaidenHead[7] = "AA00aa";
+//char MaidenHead[7] = "AA00aa";
+char MaidenHead[7] = "IM99UL";
 
 // ISR del temporizador
 void IRAM_ATTR onTimer() {
   proceed = true;
 }
-
+/*
+SETUP
+Inicializa comunicación serie con el GPS.
+Envía un comando UBX para reinicio cold start del GPS (opcional, aunque útil si se cuelga).
+Inicializa el Si5351 y configura el PLL, potencia de salida y corrección.
+Configura el temporizador hardware con un periodo de SYMBOL_PERIOD_US = 683000 µs (~0,683 s), necesario para WSPR.
+Inicializa la pantalla OLED y muestra mensajes de estado.
+*/
 void setup() {
   Serial.begin(115200);
   delay(1000);
@@ -120,8 +137,8 @@ void setup() {
   si5351.set_correction(SI5351_CORRECTION, SI5351_PLL_INPUT_XO);
   si5351.set_pll(SI5351_PLL_FIXED, SI5351_PLLA);
   // Aqui configura la salida CLK1
-  si5351.drive_strength(SI5351_CLK0, SI5351_DRIVE_8MA);
-  si5351.output_enable(SI5351_CLK0, 0);
+  si5351.drive_strength(SI5351_CLK1, SI5351_DRIVE_8MA);
+  si5351.output_enable(SI5351_CLK1, 0);
 
   timer = timerBegin(1000000);  // 1 MHz (1 us)
   timerAttachInterrupt(timer, &onTimer);
@@ -144,37 +161,55 @@ void setup() {
   delay(2000);
   Serial.println("✅ OLED inicializada, mostrando mensaje...");
 }
-
+/*
+LOOP
+- Llama periódicamente a smartDelay(950) (probablemente en otra parte del código) para permitir que el GPS procese los datos.
+- Llama a CheckGPS() de GPS.ino
+- Si UGPS.sendMsg1 == true y freq está definida, inicia la transmisión WSPR.
+*/
 void loop() {
   smartDelay(950);
   CheckGPS();
 
-  if (UGPS.sendMsg1 && freq != 0ULL) {
-    Serial.print("[TX] Frecuencia seleccionada: ");
-    Serial.println(freq);
+  if (UGPS.sendMsg1) {
+    freq = freqArray[currentFreqIndex];
+    Serial.printf("[TX] Usando frecuencia #%d: %llu Hz\n", currentFreqIndex, freq);
+
     display.clearDisplay();
-    display.display();
     display.setCursor(0, 12);
-   display.println("WSPR TX - EA5JTT");
-    display.setCursor(0,27);          
+    display.println("WSPR TX - EA5JTT");
+    display.setCursor(0, 27);
     display.print(F("Frec: "));
     display.println(freq);
     display.display();
+
     encode();
+
+    // ✅ Avanzar al siguiente índice de frecuencia
+    currentFreqIndex++;
+    if (currentFreqIndex >= NUM_FREQS) currentFreqIndex = 0;  // volver al inicio
+
     UGPS.sendMsg1 = false;
   }
 }
-
+/*
+ENCODE
+- Llama a set_tx_buffer() para codificar el mensaje WSPR.
+- Enciende el Si5351 (CLK1 habilitado). Modificar CLK1 por el CLK que se use 
+- Recorre los símbolos codificados (tx_buffer) y los transmite cambiando la frecuencia del Si5351 cada ~0,683 s.
+- Usa el flag proceed (actualizado por la ISR del temporizador onTimer) para mantener el timing exacto.
+- Al terminar, apaga la salida del Si5351 y muestra “Fin TX” en el OLED.
+*/
 void encode() {
   set_tx_buffer();
   Serial.println("[TX] Iniciando transmisión WSPR...");
   display.setCursor(0,39);          
   display.print(F("Inicio TX"));
   display.display();
-  si5351.output_enable(SI5351_CLK0, 1);
+  si5351.output_enable(SI5351_CLK1, 1);
   for (uint8_t i = 0; i < symbol_count; i++) {
     unsigned long long tx_freq = (freq * 100ULL) + (tx_buffer[i] * tone_spacing);
-    si5351.set_freq(tx_freq, SI5351_CLK0);
+    si5351.set_freq(tx_freq, SI5351_CLK1);
     Serial.print("[TX] Símbolo "); Serial.print(i); Serial.print(" → Frecuencia: "); printull(tx_freq);
     display.setCursor(i,51);          
     display.print(F("."));
@@ -182,12 +217,19 @@ void encode() {
     proceed = false;
     while (!proceed);
   }
-  si5351.output_enable(SI5351_CLK0, 0);
+  si5351.output_enable(SI5351_CLK1, 0);
   Serial.println("[TX] Transmisión finalizada.");
   display.setCursor(0,63);          
   display.print(F("Fin TX"));
   display.display();
 }
+/*
+SET_TX_BUFFER
+- Usa la librería JTEncode para generar los 162 símbolos de WSPR a partir de:
+MYCALL → tu indicativo (debe estar definido en settings.h)
+UGPS.MH_1 → el locator Maidenhead
+UGPS.dbm_1 → potencia en dBm
+*/
 void set_tx_buffer() {
   memset(tx_buffer, 0, 255);
   if (UGPS.sendMsg1) {
